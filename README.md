@@ -11,7 +11,8 @@ JalDrishti AI is an AI-powered water intelligence and decision-support platform 
 ## Architecture
 
 - **Frontend**: React 19 + Vite + Tailwind CSS + Recharts + Leaflet (OpenStreetMap) + Lucide icons
-- **Runtime Backend**: Express + TypeScript (`server.ts`) + SQLite (`sql.js`) + PDFKit + `@google/genai` (`gemini-4-hydrogen` with deterministic context-grounded fallback)
+- **Runtime Backend (local)**: Express + TypeScript (`server.ts`) + SQLite (`sql.js`) + PDFKit + `@google/genai` (`gemini-4-hydrogen` with deterministic context-grounded fallback)
+- **Runtime Backend (Vercel)**: Serverless functions in `/api/*` backed by shared handlers in `server/handlers.ts` + `server/db.ts` (SQLite via `sql.js`, DB persisted to `/tmp` per instance)
 - **Python FastAPI Reference Backend**: `/backend/main.py` + `/requirements.txt` (FastAPI + Pandas + NumPy + SQLite + ReportLab)
 
 ---
@@ -33,7 +34,22 @@ npm run build
 npm run start
 ```
 
-### 2. Optional Standalone Python FastAPI Backend
+### 2. Vercel Deployment (Frontend + Serverless API)
+
+The repo is configured for Vercel out of the box (`vercel.json`): `vite build` produces `dist/`, and every `/api/*` route is served by a serverless function under `/api/`.
+
+1. Import the GitHub repo in [Vercel](https://vercel.com/new) (framework preset: Vite, root directory `./`).
+2. Add environment variables in **Project → Settings → Environment Variables**:
+   - `GEMINI_API_KEY` — required for live Gemini Copilot responses (optional; deterministic fallback works without it)
+3. Deploy. Verify with `GET /api/health`.
+
+Notes for the serverless runtime:
+
+- SQLite (`sql.js`) runs fully in-memory; the DB file lives at `/tmp/jaldrishti.db` and persists only while a function instance stays warm. Demo data re-seeds automatically on cold starts.
+- Uploaded CSV datasets and weight changes may reset after cold starts — this is an ephemeral-storage limitation of serverless functions.
+- `server/sql-wasm.wasm` is bundled via `functions.includeFiles` in `vercel.json`.
+
+### 3. Optional Standalone Python FastAPI Backend
 
 ```bash
 python3 -m venv .venv
