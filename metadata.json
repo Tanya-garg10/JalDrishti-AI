@@ -1,0 +1,6 @@
+{
+  "name": "JalDrishti AI",
+  "description": "AI-powered water intelligence and decision-support platform to monitor groundwater depletion, assess water stress, simulate future scenarios, and plan conservation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
