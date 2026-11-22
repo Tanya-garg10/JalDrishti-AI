@@ -14,7 +14,9 @@ let SQL: SqlJsStatic | null = null;
 let dbInstance: Database | null = null;
 
 function getDbFilePath(): string {
-  const configured = process.env.JALDRISHTI_DB_PATH?.trim() || './data/jaldrishti.db';
+  const configured =
+    process.env.JALDRISHTI_DB_PATH?.trim() ||
+    (process.env.VERCEL ? '/tmp/jaldrishti.db' : './data/jaldrishti.db');
   return path.resolve(process.cwd(), configured);
 }
 
@@ -33,10 +35,12 @@ export async function getDb(): Promise<Database> {
   if (dbInstance) return dbInstance;
 
   if (!SQL) {
-    const wasmPath = path.resolve(
-      process.cwd(),
-      'node_modules/sql.js/dist/sql-wasm.wasm',
-    );
+    const candidates = [
+      process.env.SQL_WASM_PATH,
+      path.resolve(process.cwd(), 'server/sql-wasm.wasm'),
+      path.resolve(process.cwd(), 'node_modules/sql.js/dist/sql-wasm.wasm'),
+    ].filter((p): p is string => Boolean(p));
+    const wasmPath = candidates.find((p) => fs.existsSync(p)) ?? candidates[candidates.length - 1];
     SQL = await initSqlJs({
       locateFile: () => wasmPath,
       useOldExtensionFunctions: false,
