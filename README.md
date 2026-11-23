@@ -119,7 +119,7 @@ uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/api/health` | Service status & Gemini key availability check |
+| `GET` | `/api/health` | Service status & Gemini key availability check (Express runtime only — Vercel Hobby plan caps deployments at 12 functions) |
 | `GET` | `/api/dashboard/overview?locationId=&range=` | Executive KPIs, trend series, stress distribution, insights |
 | `GET` | `/api/locations` | Monitored locations with stress summary & data provenance |
 | `GET` | `/api/stress?locationId=&range=` | Transparent Water Stress Index breakdown & confidence |
