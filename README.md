@@ -8,18 +8,61 @@ JalDrishti AI is an AI-powered water intelligence and decision-support platform 
 
 ---
 
-## Architecture
+## Features
 
-- **Frontend**: React 19 + Vite + Tailwind CSS + Recharts + Leaflet (OpenStreetMap) + Lucide icons
-- **Runtime Backend (local)**: Express + TypeScript (`server.ts`) + SQLite (`sql.js`) + PDFKit + `@google/genai` (`gemini-4-hydrogen` with deterministic context-grounded fallback)
-- **Runtime Backend (Vercel)**: Serverless functions in `/api/*` backed by shared handlers in `server/handlers.ts` + `server/db.ts` (SQLite via `sql.js`, DB persisted to `/tmp` per instance)
-- **Python FastAPI Reference Backend**: `/backend/main.py` + `/requirements.txt` (FastAPI + Pandas + NumPy + SQLite + ReportLab)
+- **Executive Dashboard** — KPIs, trend series, stress distribution, and automated insights across monitored locations
+- **Water Stress Index** — transparent, weighted 0–100 score built from 5 adjustable factors (availability, depletion, rainfall deficit, demand, recharge)
+- **Predictive Scenario Engine** — 3-scenario what-if simulation (Optimistic / Baseline / High Stress) with explicit estimate disclosures
+- **Conservation Planner** — 6-domain prioritized recommendations per location
+- **Interactive Risk Map** — spatial visualization on OpenStreetMap (Leaflet)
+- **CSV Data Studio** — upload, validate, and audit custom hydrological datasets with missing-value gap preservation
+- **AI Copilot** — context-grounded Q&A powered by Gemini, with a deterministic fallback when no API key is configured
+- **PDF Intelligence Reports** — downloadable multi-section water briefs via PDFKit
+- **Groundwater Analytics** — monthly/yearly trends, seasonal averages, and cross-station comparison
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React 19, Vite, Tailwind CSS 4, Recharts, Leaflet, Lucide Icons, Motion |
+| Backend (local) | Express, TypeScript, `sql.js` (SQLite), PDFKit, `@google/genai` |
+| Backend (Vercel) | Serverless functions (`/api/*`) → shared handlers in `server/handlers.ts` |
+| Reference backend | Python FastAPI + Pandas + NumPy + SQLite + ReportLab (`/backend`) |
+| Deployment | Vercel (`vercel.json`: Vite build + serverless functions) |
+
+---
+
+## Project Structure
+
+```
+├── api/                  # Vercel serverless functions (one file per endpoint)
+│   ├── _lib.ts           # Shared request/response adapter (not routed)
+│   ├── dashboard/        # /api/dashboard/overview
+│   ├── datasets/         # /api/datasets, /upload, /export, /template
+│   ├── reports/          # /api/reports/pdf
+│   └── scenarios/        # /api/scenarios/simulate
+├── server/               # Shared backend logic
+│   ├── handlers.ts       # All API endpoint logic (runtime-agnostic)
+│   ├── db.ts             # SQLite schema, seeding, queries (sql.js)
+│   ├── analytics.ts      # Stress index, scenarios, conservation engine
+│   ├── gemini.ts         # AI Copilot + deterministic fallback
+│   ├── pdf.ts            # PDF report generation
+│   └── sql-wasm.wasm     # sql.js WASM binary (bundled for Vercel)
+├── server.ts             # Express server for local dev/prod (port 3000)
+├── src/                  # React frontend (views, components, types)
+├── backend/              # Optional standalone Python FastAPI reference
+├── data/                 # SQLite DB (local) + demo CSV
+├── vercel.json           # Vercel build + function config
+└── .env.example          # Environment variable template
+```
 
 ---
 
 ## Setup Instructions
 
-### 1. Unified Full-Stack Runtime (Port 3000)
+### 1. Local Full-Stack Runtime (Port 3000)
 
 ```bash
 npm install
@@ -27,33 +70,45 @@ cp .env.example .env   # Optional: set GEMINI_API_KEY for live Gemini responses
 npm run dev
 ```
 
-Build and run production server:
+Build and run the production server locally:
 
 ```bash
 npm run build
 npm run start
 ```
 
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Express + Vite dev server on `http://localhost:3000` |
+| `npm run build` | Production frontend build → `dist/` |
+| `npm start` | Serve `dist/` + API on `PORT` (default 3000) |
+| `npm run lint` | TypeScript typecheck (`tsc --noEmit`) |
+
 ### 2. Vercel Deployment (Frontend + Serverless API)
 
-The repo is configured for Vercel out of the box (`vercel.json`): `vite build` produces `dist/`, and every `/api/*` route is served by a serverless function under `/api/`.
+The repo deploys to Vercel out of the box (`vercel.json`): `vite build` produces `dist/`, and every `/api/*` route is served by a serverless function under `/api/`.
 
-1. Import the GitHub repo in [Vercel](https://vercel.com/new) (framework preset: Vite, root directory `./`).
+1. Import the GitHub repo at [vercel.com/new](https://vercel.com/new) (framework preset: **Vite**, root directory `./`).
 2. Add environment variables in **Project → Settings → Environment Variables**:
-   - `GEMINI_API_KEY` — required for live Gemini Copilot responses (optional; deterministic fallback works without it)
-3. Deploy. Verify with `GET /api/health`.
 
-Notes for the serverless runtime:
+   | Variable | Required | Description |
+   | --- | --- | --- |
+   | `GEMINI_API_KEY` | Optional | Live Gemini Copilot responses (deterministic fallback works without it) |
+   | `JALDRISHTI_DB_PATH` | Optional | SQLite file path (defaults to `/tmp/jaldrishti.db` on Vercel) |
+
+3. Deploy, then verify with `GET /api/health`.
+
+**Serverless runtime notes:**
 
 - SQLite (`sql.js`) runs fully in-memory; the DB file lives at `/tmp/jaldrishti.db` and persists only while a function instance stays warm. Demo data re-seeds automatically on cold starts.
-- Uploaded CSV datasets and weight changes may reset after cold starts — this is an ephemeral-storage limitation of serverless functions.
+- Uploaded CSV datasets and stress-weight changes may reset after cold starts — an ephemeral-storage limitation of serverless functions.
 - `server/sql-wasm.wasm` is bundled via `functions.includeFiles` in `vercel.json`.
 
 ### 3. Optional Standalone Python FastAPI Backend
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
